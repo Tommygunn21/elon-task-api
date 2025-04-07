@@ -1,32 +1,36 @@
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel
+import os
+import json
+import asyncio
 
 app = FastAPI()
 
-# In-memory task store
-current_task = None
+# Use an in-memory store for tasks in this version
+latest_task = None
 
-class TaskRequest(BaseModel):
-    action: str
-    message: str
+@app.get("/")
+def root():
+    return {"message": "✅ Elon Task API is Live"}
+
+@app.post("/task")
+async def post_task(request: Request):
+    global latest_task
+    data = await request.json()
+    latest_task = data
+    return {"status": "success", "message": "Task sent to Elon"}
 
 @app.get("/task")
 async def get_task():
-    global current_task
-    if current_task is None:
-        return JSONResponse(status_code=204, content={"message": "No task available"})
-    task = current_task
-    current_task = None
+    global latest_task
+    if latest_task is None:
+        return JSONResponse(status_code=204, content={})
+    task = latest_task
+    latest_task = None  # Clear after sending
     return task
 
-@app.post("/task")
-async def post_task(task: TaskRequest):
-    global current_task
-    current_task = task.dict()
-    return {"status": "success", "message": "Task sent to Elon"}
-
 @app.post("/result")
-async def post_result(result: dict):
-    print("✅ Elon returned result:", result)
+async def post_result(request: Request):
+    data = await request.json()
+    print("📥 Elon sent result:", json.dumps(data, indent=2))
     return {"status": "received"}
