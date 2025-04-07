@@ -1,36 +1,32 @@
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
-import os
-import json
-import asyncio
 
 app = FastAPI()
 
-# Use an in-memory store for tasks in this version
-latest_task = None
+# This variable stores the task in memory
+task_storage = {}
 
-@app.get("/")
-def root():
-    return {"message": "✅ Elon Task API is Live"}
-
-@app.post("/task")
-async def post_task(request: Request):
-    global latest_task
-    data = await request.json()
-    latest_task = data
-    return {"status": "success", "message": "Task sent to Elon"}
+from fastapi.responses import JSONResponse
 
 @app.get("/task")
 async def get_task():
-    global latest_task
-    if latest_task is None:
-        return JSONResponse(status_code=204, content={})
-    task = latest_task
-    latest_task = None  # Clear after sending
-    return task
+    if current_task:
+        return JSONResponse(content=current_task)
+    return Response(status_code=204)
+
+
+@app.post("/task")
+async def post_task(request: Request):
+    global task_storage
+    task_storage = await request.json()
+    return {"status": "success", "message": "Task sent to Elon"}
 
 @app.post("/result")
 async def post_result(request: Request):
-    data = await request.json()
-    print("📥 Elon sent result:", json.dumps(data, indent=2))
+    result = await request.json()
+    print("✅ Result received from Elon:")
+    print(result)
+    # Clear the task so Elon doesn't repeat it
+    global task_storage
+    task_storage = {}
     return {"status": "received"}
