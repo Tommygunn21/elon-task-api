@@ -1,29 +1,33 @@
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
+from pydantic import BaseModel
 
 app = FastAPI()
 
-# 🧠 Store the task in a global variable
-task_storage = {"task": None}
+# ✅ Declare current_task at the global scope
+current_task = None
+
+class Task(BaseModel):
+    action: str
+    message: str
 
 @app.post("/task")
-async def post_task(request: Request):
-    task_data = await request.json()
-    task_storage["task"] = task_data
+async def post_task(task: Task):
+    global current_task  # ✅ Tell FastAPI to use the global variable
+    current_task = task.dict()
     return {"status": "success", "message": "Task sent to Elon"}
 
 @app.get("/task")
 async def get_task():
-    global current_task
+    global current_task  # ✅ Again, explicitly reference global variable
     if current_task:
-        task_to_send = current_task
-        current_task = {}  # Clear after sending
-        return JSONResponse(content=task_to_send)
-    else:
-        # Don't send any body for 204 status
-        return JSONResponse(status_code=204, content=None)
+        task_to_return = current_task
+        current_task = None
+        return JSONResponse(content=task_to_return)
+    return JSONResponse(status_code=204, content={})
 
 @app.post("/result")
-async def post_result(result: dict):
-    print("📥 Elon returned result:", result)
+async def post_result(request: Request):
+    result = await request.json()
+    print("📩 Result from Elon:", result)
     return {"status": "received"}
