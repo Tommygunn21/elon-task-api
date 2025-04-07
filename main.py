@@ -14,11 +14,14 @@ async def post_task(request: Request):
 
 @app.get("/task")
 async def get_task():
-    task = task_storage.get("task")
-    if task:
-        task_storage["task"] = None  # Clear after it's picked up
-        return task
-    return JSONResponse(status_code=204, content={"message": "No new task"})
+    global current_task
+    if current_task:
+        task_to_send = current_task
+        current_task = {}  # Clear after sending
+        return JSONResponse(content=task_to_send)
+    else:
+        # Don't send any body for 204 status
+        return JSONResponse(status_code=204, content=None)
 
 @app.post("/result")
 async def post_result(result: dict):
